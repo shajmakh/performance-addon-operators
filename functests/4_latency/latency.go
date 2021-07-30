@@ -51,40 +51,13 @@ const (
 // LATENCY_TEST_RUN: indicates if the latency test should run
 // LATENCY_TEST_RUNTIME: the amount of time in seconds that the latency test should run
 // LATENCY_TEST_CPUS: the amount of CPUs the pod which run the latency test should request
-func init() {
-	latencyTestRunEnv := os.Getenv("LATENCY_TEST_RUN")
-	if latencyTestRunEnv != "" {
-		if latencyTestRunEnv == "true" {
-			latencyTestRun = true
-		}
-	}
-
-	latencyTestRuntimeEnv := os.Getenv("LATENCY_TEST_RUNTIME")
-	if latencyTestRuntimeEnv != "" {
-		latencyTestRuntime = latencyTestRuntimeEnv
-	}
-
-	latencyTestDelayEnv := os.Getenv("LATENCY_TEST_DELAY")
-	if latencyTestDelayEnv != "" {
-		var err error
-		if latencyTestDelay, err = strconv.Atoi(latencyTestDelayEnv); err != nil {
-			klog.Fatalf("the environment variable LATENCY_TEST_DELAY has incorrect value %q", latencyTestDelayEnv)
-		}
-	}
-
-	latencyTestCpusEnv := os.Getenv("LATENCY_TEST_CPUS")
-	if latencyTestCpusEnv != "" {
-		var err error
-		if latencyTestCpus, err = strconv.Atoi(latencyTestCpusEnv); err != nil {
-			klog.Fatalf("the environment variable LATENCY_TEST_CPUS has incorrect value %q", latencyTestCpusEnv)
-		}
-	}
-}
 
 var _ = Describe("[performance] Latency Test", func() {
 	var workerRTNode *corev1.Node
 	var profile *performancev2.PerformanceProfile
 	var latencyTestPod *corev1.Pod
+
+	readAndParseEnvVar()
 
 	BeforeEach(func() {
 		if !latencyTestRun {
@@ -255,6 +228,65 @@ var _ = Describe("[performance] Latency Test", func() {
 	})
 })
 
+//read LATENCY_TEST_RUN environment var and parse it if set
+func getLatencyTestRun() {
+	latencyTestRunEnv := os.Getenv("LATENCY_TEST_RUN")
+	if latencyTestRunEnv != "" {
+		if latencyTestRunEnv == "true" {
+			latencyTestRun = true
+		}
+	}
+}
+
+//read LATENCY_TEST_RUNTIME environment var and parse it if set
+func getLatencyTestRuntime() {
+	latencyTestRuntimeEnv := os.Getenv("LATENCY_TEST_RUNTIME")
+	if latencyTestRuntimeEnv != "" {
+		latencyTestRuntime = latencyTestRuntimeEnv
+	}
+}
+
+//read LATENCY_TEST_DELAY environment var and parse it if set
+func getLatencyTestDelay() {
+	latencyTestDelayEnv := os.Getenv("LATENCY_TEST_DELAY")
+	if latencyTestDelayEnv != "" {
+		var err error
+		if latencyTestDelay, err = strconv.Atoi(latencyTestDelayEnv); err != nil {
+			klog.Fatalf("the environment variable LATENCY_TEST_DELAY has incorrect value %q", latencyTestDelayEnv)
+		}
+	}
+}
+
+//read LATENCY_TEST_CPUS environment var and parse it if set
+func getLatencyTestCpus() {
+	latencyTestCpusEnv := os.Getenv("LATENCY_TEST_CPUS")
+	if latencyTestCpusEnv != "" {
+		var err error
+		if latencyTestCpus, err = strconv.Atoi(latencyTestCpusEnv); err != nil {
+			klog.Fatalf("the environment variable LATENCY_TEST_CPUS has incorrect value %q", latencyTestCpusEnv)
+		}
+	}
+}
+
+//read MAXIMUM_LATENCY environment var and parse it if set
+func getMaxLatency() {
+	unifiedMaxLatencyEnv := os.Getenv("MAXIMUM_LATENCY")
+	if unifiedMaxLatencyEnv != "" {
+		var err error
+		if maximumLatency, err = strconv.Atoi(unifiedMaxLatencyEnv); err != nil {
+			klog.Fatalf("the environment variable MAXIMUM_LATENCY has incorrect value %q", unifiedMaxLatencyEnv)
+		}
+	}
+}
+
+func readAndParseEnvVar() {
+	getLatencyTestRun()
+	getLatencyTestRuntime()
+	getLatencyTestDelay()
+	getLatencyTestCpus()
+	getMaxLatency()
+}
+
 func getLatencyTestPod(profile *performancev2.PerformanceProfile, node *corev1.Node, testName string, testSpecificArgs []string) *corev1.Pod {
 	runtimeClass := components.GetComponentName(profile.Name, components.ComponentNamePrefix)
 	testNamePrefix := fmt.Sprintf("%s-", testName)
@@ -375,13 +407,6 @@ func extractLatencyValues(testName string, exp string, node *corev1.Node) string
 // MAXIMUM_LATENCY: unified expected maximum latency for all tests
 func setMaximumLatencyValue(testName string) error {
 	var err error
-	unifiedMaxLatencyEnv := os.Getenv("MAXIMUM_LATENCY")
-	if unifiedMaxLatencyEnv != "" {
-		if maximumLatency, err = strconv.Atoi(unifiedMaxLatencyEnv); err != nil {
-			return fmt.Errorf("err: %v the environment variable MAXIMUM_LATENCY has incorrect value %q", err, unifiedMaxLatencyEnv)
-		}
-	}
-
 	// specific values will have precedence over the general one
 	envVariableName := fmt.Sprintf("%s_MAXIMUM_LATENCY", strings.ToUpper(testName))
 	maximumLatencyEnv := os.Getenv(envVariableName)
