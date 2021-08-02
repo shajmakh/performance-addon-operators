@@ -65,6 +65,15 @@ var _ = Describe("[performance] Latency Test", func() {
 	BeforeEach(func() {
 		latencyTestRun, err = getLatencyTestRun()
 		Expect(err).ToNot(HaveOccurred())
+
+		latencyTestDelay, err = getLatencyTestDelay()
+		Expect(err).ToNot(HaveOccurred())
+
+		latencyTestCpus, err = getLatencyTestCpus()
+		Expect(err).ToNot(HaveOccurred())
+
+		latencyTestRuntime = getLatencyTestRuntime()
+
 		if !latencyTestRun {
 			Skip("Skip the latency test, the LATENCY_TEST_RUN set to false")
 		}
@@ -101,13 +110,6 @@ var _ = Describe("[performance] Latency Test", func() {
 	})
 
 	Context("with the oslat image", func() {
-		latencyTestDelay, err = getLatencyTestDelay()
-		Expect(err).ToNot(HaveOccurred())
-
-		latencyTestCpus, err = getLatencyTestCpus()
-		Expect(err).ToNot(HaveOccurred())
-		latencyTestRuntime = getLatencyTestRuntime()
-
 		testName := oslatTestName
 
 		BeforeEach(func() {
@@ -169,13 +171,6 @@ var _ = Describe("[performance] Latency Test", func() {
 	})
 
 	Context("with the cyclictest image", func() {
-		latencyTestDelay, err = getLatencyTestDelay()
-		Expect(err).ToNot(HaveOccurred())
-
-		latencyTestCpus, err = getLatencyTestCpus()
-		Expect(err).ToNot(HaveOccurred())
-
-		latencyTestRuntime = getLatencyTestRuntime()
 		testName := cyclictestTestName
 
 		BeforeEach(func() {
@@ -212,13 +207,6 @@ var _ = Describe("[performance] Latency Test", func() {
 	})
 
 	Context("with the hwlatdetect image", func() {
-		latencyTestDelay, err = getLatencyTestDelay()
-		Expect(err).ToNot(HaveOccurred())
-
-		latencyTestCpus, err = getLatencyTestCpus()
-		Expect(err).ToNot(HaveOccurred())
-
-		latencyTestRuntime = getLatencyTestRuntime()
 		testName := hwlatdetectTestName
 
 		BeforeEach(func() {
@@ -305,6 +293,7 @@ func getMaximumLatency(testName string) (parsedValue int, errMsg error) {
 	if unifiedMaxLatencyEnv, ok := os.LookupEnv("MAXIMUM_LATENCY"); ok {
 		if val, err = strconv.Atoi(unifiedMaxLatencyEnv); err != nil {
 			err = fmt.Errorf("the environment variable MAXIMUM_LATENCY has incorrect value %q: %w", unifiedMaxLatencyEnv, err)
+			return val, err
 		}
 	}
 
