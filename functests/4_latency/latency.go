@@ -31,18 +31,23 @@ import (
 	"k8s.io/utils/pointer"
 )
 
-var (
-	latencyTestDelay   = 0
-	latencyTestRun     = false
-	latencyTestRuntime = "300"
-	maximumLatency     = -1
-	latencyTestCpus    = -1
-)
-
 const (
 	oslatTestName       = "oslat"
 	cyclictestTestName  = "cyclictest"
 	hwlatdetectTestName = "hwlatdetect"
+	defaultTestDelay    = 0
+	defaultTestRun      = false
+	defaultTestRuntime  = "300"
+	defaultMaxLatency   = -1
+	defaultTestCpus     = -1
+)
+
+var (
+	latencyTestDelay   = defaultTestDelay
+	latencyTestRun     = defaultTestRun
+	latencyTestRuntime = defaultTestRuntime
+	maximumLatency     = defaultMaxLatency
+	latencyTestCpus    = defaultTestCpus
 )
 
 // LATENCY_TEST_DELAY delay the run of the binary, can be useful to give time to the CPU manager reconcile loop
@@ -56,16 +61,10 @@ var _ = Describe("[performance] Latency Test", func() {
 	var profile *performancev2.PerformanceProfile
 	var latencyTestPod *corev1.Pod
 	var err error
-	latencyTestDelay, err = getLatencyTestDelay()
-	Expect(err).ToNot(HaveOccurred())
-
-	latencyTestCpus, err = getLatencyTestCpus()
-	Expect(err).ToNot(HaveOccurred())
-
-	latencyTestRun = getLatencyTestRun()
-	latencyTestRuntime = getLatencyTestRuntime()
 
 	BeforeEach(func() {
+		latencyTestRun, err = getLatencyTestRun()
+		Expect(err).ToNot(HaveOccurred())
 		if !latencyTestRun {
 			Skip("Skip the latency test, the LATENCY_TEST_RUN set to false")
 		}
@@ -74,7 +73,6 @@ var _ = Describe("[performance] Latency Test", func() {
 			Skip("Discovery mode enabled, performance profile not found")
 		}
 
-		var err error
 		profile, err = profiles.GetByNodeLabels(testutils.NodeSelectorLabels)
 		Expect(err).ToNot(HaveOccurred())
 
@@ -89,7 +87,6 @@ var _ = Describe("[performance] Latency Test", func() {
 	})
 
 	AfterEach(func() {
-		var err error
 		err = testclient.Client.Delete(context.TODO(), latencyTestPod)
 		if err != nil {
 			testlog.Error(err)
@@ -104,6 +101,13 @@ var _ = Describe("[performance] Latency Test", func() {
 	})
 
 	Context("with the oslat image", func() {
+		latencyTestDelay, err = getLatencyTestDelay()
+		Expect(err).ToNot(HaveOccurred())
+
+		latencyTestCpus, err = getLatencyTestCpus()
+		Expect(err).ToNot(HaveOccurred())
+		latencyTestRuntime = getLatencyTestRuntime()
+
 		testName := oslatTestName
 
 		BeforeEach(func() {
@@ -165,6 +169,13 @@ var _ = Describe("[performance] Latency Test", func() {
 	})
 
 	Context("with the cyclictest image", func() {
+		latencyTestDelay, err = getLatencyTestDelay()
+		Expect(err).ToNot(HaveOccurred())
+
+		latencyTestCpus, err = getLatencyTestCpus()
+		Expect(err).ToNot(HaveOccurred())
+
+		latencyTestRuntime = getLatencyTestRuntime()
 		testName := cyclictestTestName
 
 		BeforeEach(func() {
@@ -201,6 +212,13 @@ var _ = Describe("[performance] Latency Test", func() {
 	})
 
 	Context("with the hwlatdetect image", func() {
+		latencyTestDelay, err = getLatencyTestDelay()
+		Expect(err).ToNot(HaveOccurred())
+
+		latencyTestCpus, err = getLatencyTestCpus()
+		Expect(err).ToNot(HaveOccurred())
+
+		latencyTestRuntime = getLatencyTestRuntime()
 		testName := hwlatdetectTestName
 
 		BeforeEach(func() {
@@ -235,33 +253,31 @@ var _ = Describe("[performance] Latency Test", func() {
 })
 
 //read LATENCY_TEST_RUN environment var and parse it if set
-func getLatencyTestRun() (parsedValue bool) {
+func getLatencyTestRun() (parsedValue bool, errMsg error) {
+	var err error
 	val := false
-	latencyTestRunEnv := os.Getenv("LATENCY_TEST_RUN")
-	if latencyTestRunEnv != "" {
-		if latencyTestRunEnv == "true" {
-			val = true
-		}
+	if latencyTestRunEnv, ok := os.LookupEnv("LATENCY_TEST_RUN"); ok {
+		val, err = strconv.ParseBool(latencyTestRunEnv)
 	}
-	return val
+	return val, err
 }
 
 //read LATENCY_TEST_RUNTIME environment var and parse it if set
 func getLatencyTestRuntime() (parsedValue string) {
-	latencyTestRuntimeEnv := os.Getenv("LATENCY_TEST_RUNTIME")
-	return latencyTestRuntimeEnv
+	if latencyTestRuntimeEnv, ok := os.LookupEnv("LATENCY_TEST_RUNTIME"); ok {
+		return latencyTestRuntimeEnv
+	}
+	return defaultTestRuntime
 }
 
 //read LATENCY_TEST_DELAY environment var and parse it if set
 func getLatencyTestDelay() (parsedValue int, errMsg error) {
 	var err error
-	var val int
-	latencyTestDelayEnv := os.Getenv("LATENCY_TEST_DELAY")
-	if latencyTestDelayEnv != "" {
+	val := defaultTestDelay
+	if latencyTestDelayEnv, ok := os.LookupEnv("LATENCY_TEST_DELAY"); ok {
 		if val, err = strconv.Atoi(latencyTestDelayEnv); err != nil {
-			err = fmt.Errorf("the environment variable LATENCY_TEST_DELAY has incorrect value %q", latencyTestDelayEnv)
+			err = fmt.Errorf("the environment variable LATENCY_TEST_DELAY has incorrect value %q: %w", latencyTestDelayEnv, err)
 		}
-
 	}
 	return val, err
 }
@@ -269,11 +285,10 @@ func getLatencyTestDelay() (parsedValue int, errMsg error) {
 //read LATENCY_TEST_CPUS environment var and parse it if set
 func getLatencyTestCpus() (parsedVal int, errMsg error) {
 	var err error
-	var val int
-	latencyTestCpusEnv := os.Getenv("LATENCY_TEST_CPUS")
-	if latencyTestCpusEnv != "" {
+	val := defaultTestCpus
+	if latencyTestCpusEnv, ok := os.LookupEnv("LATENCY_TEST_CPUS"); ok {
 		if val, err = strconv.Atoi(latencyTestCpusEnv); err != nil {
-			err = fmt.Errorf("the environment variable LATENCY_TEST_CPUS has incorrect value %q", latencyTestCpusEnv)
+			err = fmt.Errorf("the environment variable LATENCY_TEST_CPUS has incorrect value %q: %w", latencyTestCpusEnv, err)
 		}
 	}
 	return val, err
@@ -286,20 +301,18 @@ func getLatencyTestCpus() (parsedVal int, errMsg error) {
 // MAXIMUM_LATENCY: unified expected maximum latency for all tests
 func getMaximumLatency(testName string) (parsedValue int, errMsg error) {
 	var err error
-	var val int
-	unifiedMaxLatencyEnv := os.Getenv("MAXIMUM_LATENCY")
-	if unifiedMaxLatencyEnv != "" {
-		var err error
+	val := defaultMaxLatency
+	if unifiedMaxLatencyEnv, ok := os.LookupEnv("MAXIMUM_LATENCY"); ok {
 		if val, err = strconv.Atoi(unifiedMaxLatencyEnv); err != nil {
-			err = fmt.Errorf("the environment variable MAXIMUM_LATENCY has incorrect value %q", unifiedMaxLatencyEnv)
+			err = fmt.Errorf("the environment variable MAXIMUM_LATENCY has incorrect value %q: %w", unifiedMaxLatencyEnv, err)
 		}
 	}
+
 	// specific values will have precedence over the general one
 	envVariableName := fmt.Sprintf("%s_MAXIMUM_LATENCY", strings.ToUpper(testName))
-	maximumLatencyEnv := os.Getenv(envVariableName)
-	if maximumLatencyEnv != "" {
+	if maximumLatencyEnv, ok := os.LookupEnv(envVariableName); ok {
 		if val, err = strconv.Atoi(maximumLatencyEnv); err != nil {
-			err = fmt.Errorf("the environment variable %q has incorrect value %q", envVariableName, maximumLatencyEnv)
+			err = fmt.Errorf("the environment variable %q has incorrect value %q: %w", envVariableName, maximumLatencyEnv, err)
 		}
 	}
 	return val, err
