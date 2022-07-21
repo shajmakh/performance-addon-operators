@@ -4,6 +4,8 @@ name: Build tool binary
 
 # Controls when the workflow will run
 on:
+  workflow_dispatch:
+  
   push:
     tags: '*'
 
