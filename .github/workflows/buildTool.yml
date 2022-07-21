@@ -47,10 +47,10 @@ jobs:
           name: build-artifacts
           path: build/_output/bin/hugepages-machineconfig-generator
   
-  release:
-    needs: [build]
-    runs-on: ubuntu-latest
-    steps:
+  # release:
+  #   needs: [build]
+  #   runs-on: ubuntu-latest
+  #   steps:
       - name: checkout sources
         uses: actions/checkout@v3
         with:
