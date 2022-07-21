@@ -51,10 +51,10 @@ jobs:
   #   needs: [build]
   #   runs-on: ubuntu-latest
   #   steps:
-      - name: checkout sources
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 0 # To fetch all tags and branches
+  #     - name: checkout sources
+  #       uses: actions/checkout@v3
+  #       with:
+  #         fetch-depth: 0 # To fetch all tags and branches
 
       - name: download again the build artifacts
         uses: actions/download-artifact@v2
