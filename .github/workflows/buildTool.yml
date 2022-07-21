@@ -18,7 +18,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v3
+      - name: checkout sources
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0 # To fetch all tags and branches
 
       - name: setup golang
         uses: actions/setup-go@v2
@@ -29,7 +32,11 @@ jobs:
     needs: [setup]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - name: checkout sources
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0 # To fetch all tags and branches
+
       - name: build machineconfig generator tool for hugepages
         run: make dist-hugepages-mc-genarator
       
@@ -48,7 +55,10 @@ jobs:
     steps:
       - name: checkout sources
         uses: actions/checkout@v3
-      
+        with:
+          fetch-depth: 0 # To fetch all tags and branches
+
       - name: release the tool binary 
         uses: ncipollo/release-action@v1
-       
+        with:
+          name: hugepagesmcgenartor
