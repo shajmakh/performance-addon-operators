@@ -40,13 +40,15 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: build-artifacts
-          path: artifacts
-          
-#  package:
-#   needs: [build]
-#   runs-on: ubuntu-latest
-#   steps:
-#      - name: batch and save the tool binary file
-#        run: |
-#          echo Add other actions to build,
-#          echo test, and deploy your project.
+          path: artifacts/*
+  
+  release:
+    needs: [build]
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout sources
+        uses: actions/checkout@v3
+      
+      - name: release the tool binary 
+        uses: ncipollo/release-action@v1
+       
