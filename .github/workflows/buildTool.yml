@@ -39,15 +39,12 @@ jobs:
 
       - name: build machineconfig generator tool for hugepages
         run: make dist-hugepages-mc-genarator
-      
-      - name: create directory to store the artifacts
-        run: mkdir artifacts
         
       - name: upload build artifacts
         uses: actions/upload-artifact@v2
         with:
           name: build-artifacts
-          path: artifacts/*
+          path: build/_output/bin
   
   release:
     needs: [build]
@@ -58,7 +55,13 @@ jobs:
         with:
           fetch-depth: 0 # To fetch all tags and branches
 
+      - name: download again the build artifacts
+        uses: actions/download-artifact@v2
+        with:
+          name: build-artifacts
+
       - name: release the tool binary 
         uses: ncipollo/release-action@v1
         with:
           name: hugepagesmcgenartor
+          artifacts: build/_output/bin
